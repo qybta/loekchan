@@ -157,6 +157,12 @@ $threadid = !empty($_GET['thread']) ? ((int) $_GET['thread']) : 0;
 $file = !empty($_GET['file']) ? ((int) $_GET['file']) : 0;
 $page = !empty($_GET['page']) ? ((int) $_GET['page']) : 0;
 
+// /favicon\.ico -> index.php?favicon
+// /([^/]+)/ -> index.php?board=$1
+// /([^/]+)/([0-9]+) -> index.php?board=$1&page=$2
+// /([^/]+)/src/([0-9]+) -> index.php?board=$1&thread=$2
+// /([^/])/f/([0-9]+) -> index.php?board=$1&file=$2
+
 if (!isset($boards[$board])) {
 	error();
 }
@@ -225,7 +231,7 @@ if ($reply) {
 
 	if (!isset($_POST['post'])) {
 		if ($board != $thread['board'] || $threadid != $postid) {
-			header("Location: /{$thread['board']}/src/$postid");
+			header("Location: /{$thread['board']}/src/$postid", true, 301);
 			exit;
 		}
 	}
@@ -361,7 +367,7 @@ if (isset($_POST['post'])) {
 		pg_query("update threads set modtime = now() where threadid = $threadid");
 	}
 	pg_query("COMMIT");
-	header("Location: /$board/src/$postid");
+	header("Location: /$board/src/$postid", true, 303);
 	exit;
 }
 
