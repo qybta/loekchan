@@ -1,0 +1,26 @@
+User-Agent: *
+# No images.
+Disallow: /b/f/
+Disallow: /n/f/
+Disallow: /pol/f/
+Disallow: /fil/f/
+Disallow: /fit/f/
+Disallow: /fin/f/
+Disallow: /lit/f/
+Disallow: /rus/f/
+Disallow: /prog/f/
+Disallow: /it/f/
+Disallow: /hjelp/f/
+Disallow: /cy/f/
+Disallow: /et/f/
+Disallow: /sik/f/
+Disallow: /lf/f/
+Disallow: /t/f/
+Disallow: /k/f/
+Disallow: /mot/f/
+Disallow: /møt/f/
+Disallow: /porr/f/
+Disallow: /j/f/
+Disallow: /g/f/
+Disallow: /løk/f/
+Disallow: /meta/f/

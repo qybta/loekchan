@@ -1,9 +1,13 @@
 <?php
 require "secrets.php";
 
+if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36") {
+	die("WHO ARE YOU? WHAT DO YOU WANT FROM ME? GO AWAY, LEAVE ME THE FUCK ALONE! FUCK YOUU!!!!1");
+}
+
 // Rediriger til kulere domenenavn.
 if (substr($_SERVER['HTTP_HOST'], 0, 16) === 'zdasaqqvbij5lahr') {
-	header('Location: http://loekchan3kvr6cw6' .
+	header('Location: //loekchan3kvr6cw6' .
 		substr($_SERVER['HTTP_HOST'], 16) .
 		$_SERVER['REQUEST_URI'], true, 301);
 	exit;
@@ -162,6 +166,10 @@ $page = !empty($_GET['page']) ? ((int) $_GET['page']) : 0;
 // /([^/]+)/([0-9]+) -> index.php?board=$1&page=$2
 // /([^/]+)/src/([0-9]+) -> index.php?board=$1&thread=$2
 // /([^/])/f/([0-9]+) -> index.php?board=$1&file=$2
+
+if ($board === "bl") {
+	error("Yes, this is Dog. How may I direct your call?");
+}
 
 if (!isset($boards[$board])) {
 	error();
@@ -372,7 +380,7 @@ if (isset($_POST['post'])) {
 }
 
 ?>
-<!doctype html><meta charset=utf8><title><?= $title ?></title><style>html{background-color:beige;color:black}th{background-color: bisque}td,ul{text-align:left}.center{text-align:center;width:780px;margin:0 auto}.t{font-size:0.8em}table,textarea,input[type=text]{width:100%}.img{float:left;padding:5px}.name,.cur{color:green;font-weight:bold}.admin{color:red;font-weight:bold}.post{padding:4px;border:1px outset;background-color:bisque;display:table;margin:4px}.header{padding-bottom:2px}.q{color:rgb(120,153,34)}</style><?php
+<!doctype html><meta charset=utf8><title><?= $title ?></title><style>html{background-color:beige;color:black}th{background-color:bisque}td,ul{text-align:left}.center{text-align:center;width:780px;margin:0 auto}.t{font-size:0.8em}table,textarea,input[type=text]{width:100%}.img{float:left;padding:5px}.name,.cur{color:green;font-weight:bold}.admin{color:red;font-weight:bold}.post{padding:4px;border:1px outset;background-color:bisque;display:table;margin:4px}.header{padding-bottom:2px}.q{color:rgb(120,153,34)}</style><?php
 
 ?><script>document.addEventListener('DOMContentLoaded',function(){Array.prototype.forEach.call(document.querySelectorAll("img"),function(e){e.addEventListener("click",function(){var tmp=this.getAttribute('src');this.setAttribute('src',this.getAttribute('data-uri'));this.setAttribute('data-uri',tmp);});});});</script><?php
 
