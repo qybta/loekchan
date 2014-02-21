@@ -2,7 +2,10 @@
 require "secrets.php";
 
 if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36") {
-	die("WHO ARE YOU? WHAT DO YOU WANT FROM ME? GO AWAY, LEAVE ME THE FUCK ALONE! FUCK YOUU!!!!1");
+	// Ser ut til å overvåke oppetid på HS-er, kanskje for korrelering med
+	// relays.
+	header('Location: http://fuckthefuckoffok.onion', true, 301);
+	exit;
 }
 
 // Rediriger til kulere domenenavn.
@@ -153,8 +156,11 @@ $board_quotes = [
 ];
 $board_quotes['alle'] = [];
 foreach ($board_quotes as $k => $v) {
-	$board_quotes['alle'] = array_merge($board_quotes['alle'], $board_quotes[$k]);
+	$board_quotes['alle'] = array_merge(
+		$board_quotes['alle'], $board_quotes[$k]
+	);
 }
+$board_quotes['alle'] = array_unique($board_quotes['alle']);
 
 $board = !empty($_GET['board']) ? $_GET['board'] : "alle";
 $threadid = !empty($_GET['thread']) ? ((int) $_GET['thread']) : 0;
@@ -167,7 +173,7 @@ $page = !empty($_GET['page']) ? ((int) $_GET['page']) : 0;
 // /([^/]+)/src/([0-9]+) -> index.php?board=$1&thread=$2
 // /([^/])/f/([0-9]+) -> index.php?board=$1&file=$2
 
-if ($board === "bl") {
+if ($board === "bl") { // Fatter ikke hvorfor folk prøver dette.
 	error("Yes, this is Dog. How may I direct your call?");
 }
 
@@ -233,9 +239,16 @@ $reply = $threadid !== 0;
 if ($reply) {
 	$res = pg_query("select * from threads natural join posts where postid = $threadid");
 	$thread = pg_fetch_assoc($res);
+	if (empty($thread)) {
+		error("fuk of u fgt");
+	}
 
 	$res = pg_query("select postid, post from posts where postid = (select min(postid) from posts where threadid = {$thread['threadid']})");
 	list($postid, $startpost) = pg_fetch_row($res);
+	if ($postid === null) {
+		mail(ADMIN_MAILADDR, "Løkchanfail", "Du fucka noe opp. Sjekk $threadid");
+		error("Ukonsistente databasetabeller oppdaget.");
+	}
 
 	if (!isset($_POST['post'])) {
 		if ($board != $thread['board'] || $threadid != $postid) {
@@ -245,7 +258,13 @@ if ($reply) {
 	}
 	$threadid = ((int) $thread['threadid']);
 	$locked = $thread['locked'] === 't';
-	$title = htmlspecialchars(substr($startpost, 0, 20)) . "… - Løkchan";
+	if (empty(trim($startpost))) {
+		$title = "/$board/ - Løkchan";
+	} elseif (mb_strlen($startpost) > 20) {
+		$title = htmlspecialchars(mb_substr($startpost, 0, 20)) . "… - /$board/ - Løkchan";
+	} else {
+		$title = htmlspecialchars($startpost) . " - /$board/ - Løkchan";
+	}
 } else {
 	$thread = [];
 	$locked = false;
@@ -292,7 +311,7 @@ if (isset($_POST['post'])) {
 			$image = imagecreatefromjpeg($_FILES['file']['tmp_name']);
 			$image or error("Kunne ikke lese bildet ditt.");
 			ob_start();
-			imagejpeg($image, NULL, 85) or error();
+			imagejpeg($image, null, 85) or error();
 			$attachment = ob_get_contents();
 			ob_end_clean();
 			break;
@@ -301,7 +320,7 @@ if (isset($_POST['post'])) {
 			$image = imagecreatefrompng($_FILES['file']['tmp_name']);
 			$image or error("Kunne ikke lese bildet ditt.");
 			ob_start();
-			imagepng($image, NULL, 9, PNG_ALL_FILTERS) or error();
+			imagepng($image, null, 9, PNG_ALL_FILTERS) or error();
 			$attachment = ob_get_contents();
 			ob_end_clean();
 			break;
@@ -325,25 +344,25 @@ if (isset($_POST['post'])) {
 			imageantialias($thumbnail, true);
 			imagecopyresampled($thumbnail, $image, 0,0,0,0, $newx, $newy, $imagex, $imagey);
 			ob_start();
-			imagejpeg($thumbnail, NULL, 75);
+			imagejpeg($thumbnail, null, 75) or error();
 			$thumbnail = ob_get_contents();
 			ob_end_clean();
 		} else {
-			$imagex = NULL;
-			$imagey = NULL;
-			$thumbnail = NULL;
+			$imagex = null;
+			$imagey = null;
+			$thumbnail = null;
 		}
 		$threadid = ((int) $thread['threadid']);
 		$name = !empty($_POST['name']) ? pg_escape_literal(trim($_POST['name'])) : "null";
 		$mail = !empty($_POST['mail']) ? pg_escape_literal(trim($_POST['mail'])) : "null";
 		$trip = !empty($_POST['trip']) ? ("'" . pg_escape_bytea(sha1(CHAN_SALT . trim($_POST['trip']), true)) . "'") : "null";
 		$post = pg_escape_literal(str_replace("\r", "", $_POST['post']));
-		$thumbnail = $thumbnail !== NULL ? "'" . pg_escape_bytea($thumbnail) . "'" : "null";
+		$thumbnail = $thumbnail !== null ? "'" . pg_escape_bytea($thumbnail) . "'" : "null";
 		$filemime = pg_escape_literal($filemime);
 		$filename = pg_escape_literal($_FILES['file']['name']);
 		$filesize = strlen($attachment);
-		$imagex = $imagex !== NULL ? ((int) $imagex) : "null";
-		$imagey = $imagey !== NULL ? ((int) $imagey) : "null";
+		$imagex = $imagex !== null ? ((int) $imagex) : "null";
+		$imagey = $imagey !== null ? ((int) $imagey) : "null";
 		$filesha1 = "'" . pg_escape_bytea(sha1($attachment, true)) . "'";
 		$attachment = "'" . pg_escape_bytea($attachment) . "'";
 
@@ -354,12 +373,12 @@ if (isset($_POST['post'])) {
 		}
 
 		$res = pg_query("insert into posts (threadid, name, mail, trip, post, thumbnail, filemime, filename, " .
-					"filesize, imagex, imagey, filesha1, attachment)" .
-				"VALUES ($threadid, $name, $mail, $trip, $post, $thumbnail, $filemime, $filename, " .
-					"$filesize, $imagex, $imagey, $filesha1, $attachment) returning postid;");
+		                       "filesize, imagex, imagey, filesha1, attachment)" .
+		                "values ($threadid, $name, $mail, $trip, $post, $thumbnail, $filemime, $filename, " .
+		                        "$filesize, $imagex, $imagey, $filesha1, $attachment) returning postid;");
 		list($postid) = pg_fetch_row($res);
 	} else {
-		if (!isset($_POST['post']) || empty(trim($_POST['post']))) {
+		if (empty(trim($_POST['post']))) {
 			error("Du må poste noe.");
 		}
 		$threadid = ((int) $thread['threadid']);
@@ -368,7 +387,7 @@ if (isset($_POST['post'])) {
 		$trip = !empty($_POST['trip']) ? ("'" . pg_escape_bytea(sha1(CHAN_SALT . trim($_POST['trip']), true)) . "'") : "null";
 		$post = pg_escape_literal(str_replace("\r", "", $_POST['post']));
 		$res = pg_query("insert into posts (threadid, name, mail, trip, post) " .
-				"VALUES ($threadid, $name, $mail, $trip, $post) returning postid");
+		                "values ($threadid, $name, $mail, $trip, $post) returning postid");
 		list($postid) = pg_fetch_row($res);
 	}
 	if ($mail !== "'sage'") {
@@ -411,10 +430,10 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 	list($n) = pg_fetch_row($res);
 
 	$res = pg_query("select postid, createtime, name, mail, trip, " .
-				"post, thumbnail, filemime, filename, " .
-				"filesize, imagex, imagey " .
-			"from posts where threadid = $threadid " .
-			"order by createtime asc");
+	                        "post, thumbnail, filemime, filename, " .
+	                        "filesize, imagex, imagey " .
+	                "from posts where threadid = $threadid " .
+	                "order by createtime asc");
 	$isfirst = true;
 	$rows = [];
 	while ($row = pg_fetch_assoc($res)) {
@@ -427,7 +446,10 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 			$firstpost = $rowid;
 		}
 		if ($isfirst || $limit === false || $p > $n - $limit) {
-			print_post($row, $rows, $threadid, $board, $isfirst, $printboard, $isidx, $firstpost);
+			print_post(
+				$row, $rows, $threadid, $board, $isfirst,
+				$printboard, $isidx, $firstpost
+			);
 		}
 		if ($isfirst && $isidx && $n > $limit) {
 			echo "<b>".($n - $limit) ." poster utelatt.</b>";
@@ -437,7 +459,8 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 	}
 	echo "</div><hr style=\"clear:both\">";
 }
-function print_post($post, $posts, $threadid, $board, $isfirst, $printboard, $isidx, $firstpost) {
+function print_post($post, $posts, $threadid, $board, $isfirst, $printboard,
+	    $isidx, $firstpost) {
 	extract($post);
 	if ($trip !== null) {
 		$trip = substr(base64_encode(pg_unescape_bytea($trip)), 0, 10);
@@ -452,13 +475,15 @@ function print_post($post, $posts, $threadid, $board, $isfirst, $printboard, $is
 	} else {
 		$nameclass = "name";
 	}
-	if ($mail !== null) {
-		echo "<a href=\"mailto:".urlencode($mail)."\" class=$nameclass>";
+	if ($mail !== null && $mail !== "noko") {
+		echo "<a href=\"mailto:",
+			rawurlencode($mail),
+			"\" class=$nameclass>";
 	} else {
 		echo "<span class=$nameclass>";
 	}
 	echo htmlspecialchars($name === null ? "Anonym" : $name);
-	if ($mail !== null) {
+	if ($mail !== null && $mail !== "noko") {
 		echo "</a>";
 	} else {
 		echo "</span>";
@@ -482,13 +507,13 @@ function print_post($post, $posts, $threadid, $board, $isfirst, $printboard, $is
 			"</a>, ",
 			"<span class=filemeta>",
 			$filemime, ", ",
-			($imagex !== NULL ? $imagex . "x" . $imagey . ", " : ""),
+			($imagex !== null ? $imagex . "x" . $imagey . ", " : ""),
 			humansize($filesize),
 			"</span>]";
 	}
 	echo " No. " . $postid;
 	if ($isfirst && $isidx) {
-		echo " <a href=\"/$board/src/$postid\">[svar]</a>";
+		echo " <a href=\"/$board/src/$postid\">[Svar]</a>";
 	}
 	echo "</div>"; // header
 	if ($thumbnail !== null) {
@@ -503,8 +528,15 @@ function print_post($post, $posts, $threadid, $board, $isfirst, $printboard, $is
 function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 	$post = str_replace("\r", "", $post);
 	if ($isidx) {
-		$npost = substr($post, 0, 1000);
-		if ($npost === false) {
+		$postlines = explode("\n", $post);
+		if (count($postlines) > 10) {
+			$n = array_sum(array_map(function ($x) { return mb_strlen($x); },
+			                         array_slice($postlines, 0, 10))) + 9;
+		} else {
+			$n = 1000;
+		}
+		$npost = mb_substr($post, 0, min($n, 1000));
+		if ($npost === false) { // I fucking hate PHP.
 			$npost = "";
 		}
 		if ($npost !== $post) {
@@ -512,25 +544,25 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 			$post = htmlspecialchars($npost)."<br>";
 			$post .= "<a href=/$board/src/$firstpost#p$postid>[Les resten]</a>";
 		} else {
-			$post = htmlspecialchars($npost)."<br>";
+			$post = htmlspecialchars($npost);
 		}
 	} else {
 		$post = htmlspecialchars($post);
 	}
-	$post = preg_replace_callback("/&gt;&gt;(\d+)/", function ($matches) use ($posts, $board) {
-			if (isset($posts[$matches[1]])) {
-				return "<a href=\"#p{$matches[1]}\">&gt;&gt;{$matches[1]}</a>";
+	$post = preg_replace_callback("/&gt;&gt;(&gt;\/\w+\/)?(\d+)/", function ($matches) use ($posts, $board) {
+			if (isset($posts[$matches[2]])) {
+				return "<a href=\"#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
 			} else {
-				$res = pg_query("select board, min(postid) from threads natural join posts where threadid = (select threadid from threads natural join posts where postid=" .((int) $matches[1]).") group by board");
+				$res = pg_query("select board, min(postid) from threads natural join posts where threadid = (select threadid from threads natural join posts where postid=" .((int) $matches[2]).") group by board");
 				$n = pg_num_rows($res);
 				if ($n == 0) {
 					return $matches[0];
 				}
 				list($board_, $tid) = pg_fetch_row($res);
 				if ($board_ !== $board) {
-					return "<a href=\"/$board_/src/$tid#p{$matches[1]}\">&gt;&gt;&gt;/$board_/{$matches[1]}</a>";
+					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\">&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
 				} else {
-					return "<a href=\"/$board/src/$tid#p{$matches[1]}\">&gt;&gt;{$matches[1]}</a>";
+					return "<a href=\"/$board/src/$tid#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
 				}
 			}
 		}, $post);
@@ -543,15 +575,15 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 
 if ($threadid === 0) {
 	$res = pg_query("select count(*) from threads " .
-			($board !== "alle" ? "where board = '$board' " : ""));
+	                ($board !== "alle" ? "where board = '$board' " : ""));
 	list($num_threads) = pg_fetch_row($res);
 
 	$res = pg_query("select threadid, board, issticky, locked from threads " .
-			($board !== "alle" ? "where board = '$board' " : "") .
-			"order by " .
-				($board !== "alle" ? "issticky desc, " : "") .
-				"modtime desc " .
-			"limit " . PER_PAGE . " offset " . ($page*PER_PAGE));
+	                ($board !== "alle" ? "where board = '$board' " : "") .
+	                "order by " .
+	                        ($board !== "alle" ? "issticky desc, " : "") .
+	                        "modtime desc " .
+	                "limit " . PER_PAGE . " offset " . ($page*PER_PAGE));
 	$threads = [];
 	while ($row = pg_fetch_assoc($res)) {
 		$threads[$row['threadid']] =
