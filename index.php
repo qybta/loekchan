@@ -452,7 +452,11 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 			);
 		}
 		if ($isfirst && $isidx && $n > $limit) {
-			echo "<b>".($n - $limit) ." poster utelatt.</b>";
+			echo "<b>",
+				($n - $limit),
+				" post",
+				($n - $limit > 1 ? "er" : ""),
+				" utelatt.</b>";
 		}
 		++$p;
 		$isfirst = false;
