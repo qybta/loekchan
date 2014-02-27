@@ -225,13 +225,17 @@ $c = pg_connect("dbname=loekchan user=loekchan")
 if ($file !== 0) {
 	$res = pg_query("select filemime, filename, attachment from posts where postid = $file");
 	list($type, $name, $att) = pg_fetch_row($res);
+	$att = pg_unescape_bytea($att);
 	if ($att === null) {
 		error("Ingen fil her.");
+	}
+	if ($type === "text/plain") {
+		$type = $type."; charset=".mb_detect_encoding($att);
 	}
 	header("Content-Type: ".$type);
 	header("Content-Disposition: inline; filename=\"" . cleanqval($name) . "\"");
 	header("Cache-Control: public, max-age=1073741824");
-	echo pg_unescape_bytea($att);
+	echo $att;
 	exit;
 }
 
