@@ -1,7 +1,7 @@
 <?php
 require "secrets.php";
 
-if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36") {
+if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36" || $_SERVER['HTTP_USER_AGENT'] === "Java/1.7.0_17") {
 	// Ser ut til å overvåke oppetid på HS-er, kanskje for korrelering med
 	// relays.
 	header('Location: http://fuckthefuckoffok.onion', true, 301);
@@ -19,7 +19,7 @@ if (substr($_SERVER['HTTP_HOST'], 0, 16) === 'zdasaqqvbij5lahr') {
 ob_start('ob_gzhandler');
 error_reporting(E_ALL);
 
-define('PER_PAGE', 50);
+define('PER_PAGE', 10);
 define('FROM_POST', 5);
 define('MAX_FILE_SIZE', 4*1024*1024);
 
@@ -421,7 +421,7 @@ echo "]</p>";
 ?><div class=center><h1>Løkchan</h1><p>/<?= $board ?>/ - <?= htmlspecialchars($boards[$board]) ?><p class=t><?= $quotes[array_rand($quotes)]; ?></p><?php
 
 if ($board !== "alle" && !$locked) {
-	?><form enctype=multipart/form-data action="" method=post><table><tr><th colspan=6>Modus: <?= $reply ? "svar" : "ny tråd"; ?></th></tr><tr><th>Navn</th><td><input type=text name=name placeholder=Anonym></td><th>Mail</th><td><input type=text name=mail placeholder=age></td><th>Trip</th><td><input name=trip type=text placeholder="er for fags"></td></tr><tr><th>Post</th><td colspan=5><textarea name=post cols=80 rows=10></textarea></td></tr><tr><th>Fil</th><td colspan=5><input type=hidden name=MAX_FILE_SIZE value=<?= MAX_FILE_SIZE ?>><input type=file name=file></td></tr><tr><th colspan=6><input type=submit value=Post></th></tr></table></form><?php
+	?><form enctype=multipart/form-data action="" method=post><table><tr><th colspan=6>Modus: <?= $reply ? "svar" : "ny tråd"; ?></th></tr><tr><th>Navn</th><td><input type=text name=name placeholder=Anonym></td><th>Mail</th><td><input type=text name=mail placeholder=age></td><th>Trip</th><td><input name=trip type=text placeholder="er for fags"></td></tr><tr><th>Post</th><td colspan=5><textarea name=post cols=80 rows=10></textarea></td></tr><tr><th>Fil</th><td colspan=5><input type=hidden name=MAX_FILE_SIZE value=<?= MAX_FILE_SIZE ?>><input type=file name=file></td></tr><tr><th colspan=6><input type=submit value="<?= $reply ? "Post et svar" : "Lag en ny tråd"; ?>"></th></tr></table></form><?php
 
 	?><ul class=t><li>Ikke spam.<li>Ingen porno av prepubertale barn eller tortur av katter, please. Admin har sarte følelser.<li>Bryt gjerne alle andre lover.</ul><?php
 }

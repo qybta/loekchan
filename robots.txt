@@ -24,3 +24,6 @@ Disallow: /j/f/
 Disallow: /g/f/
 Disallow: /løk/f/
 Disallow: /meta/f/
+
+# Fucking newbs.
+Disallow: /data:image/
