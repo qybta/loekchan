@@ -10,7 +10,7 @@ CREATE INDEX thread_order ON threads (board, modtime);
 CREATE TABLE posts (
 	postid serial primary key not null,
 	createtime timestamptz not null default now(),
-	threadid int not null references threads,
+	threadid int not null references threads on delete cascade,
 	name text,
 	mail text,
 	trip bytea,
