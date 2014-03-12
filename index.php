@@ -1,6 +1,10 @@
 <?php
 require "secrets.php";
 
+if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+	die("Who are you?");
+}
+
 if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36" || $_SERVER['HTTP_USER_AGENT'] === "Java/1.7.0_17") {
 	// Ser ut til å overvåke oppetid på HS-er, kanskje for korrelering med
 	// relays.
@@ -109,7 +113,7 @@ $quotes_j = array_merge($quotes_humm, [
 	"«Duften av oljene dine er deilig,<br>navnet ditt øses ut som olje.<br>Derfor liker jentene deg.»<br>– Høysangen 1,3",
 ]);
 $quotes_lit_fil = [
-	"«Men av treet til kunnskap om godt og ondt må du ikke spise. For den dagen du spiser av det, skal du dø.»<br>– Første Mosebok 2,17"
+	"«Men av treet til kunnskap om godt og ondt må du ikke spise. For den dagen du spiser av det, skal du dø.»<br>– Første Mosebok 2,17",
 ];
 
 $board_quotes = [
@@ -121,7 +125,7 @@ $board_quotes = [
 	"j" => $quotes_j,
 	"porr" => $quotes_porr,
 	"g" => [
-		"«På samme måte sluttet mennene å ha naturlig samliv med kvinner og brant i begjær etter hverandre. Menn drev utukt med menn, og de måtte selv ta straffen for sin villfarelse»<br>– Paulus' brev til romerne 1,27"
+		"«På samme måte sluttet mennene å ha naturlig samliv med kvinner og brant i begjær etter hverandre. Menn drev utukt med menn, og de måtte selv ta straffen for sin villfarelse»<br>– Paulus' brev til romerne 1,27",
 	],
 	"lit" => $quotes_lit_fil,
 	"fil" => $quotes_lit_fil,
@@ -142,7 +146,7 @@ $board_quotes = [
 	],
 	"cy" => [
 		"«Svovel og salt, hele landet avsvidd så det ikke kan sås, bli grønt eller noe strå kan vokse der, slik det også var da Sodoma og Gomorra, Adma og Sebojim ble ødelagt, de som Herren i sin vrede og harme ødela.»<br>– Femte Mosebok 29,23",
-		"Våpni sine<br>skal mann på vollen<br>ikkje gange eit fet ifrå.<br>Uvisst er å vita<br>når på vegom ute<br>det spyrjast kann etter spjot."
+		"Våpni sine<br>skal mann på vollen<br>ikkje gange eit fet ifrå.<br>Uvisst er å vita<br>når på vegom ute<br>det spyrjast kann etter spjot.",
 	],
 	"sik" => [
 		"«Behandle laptoppen din som du behandler tenåringsrømlingen i sex-kjelleren din: lås den ned når du går fra den.»<br>– the grugq",
@@ -151,7 +155,11 @@ $board_quotes = [
 		"Våpni sine<br>skal mann på vollen<br>ikkje gange eit fet ifrå.<br>Uvisst er å vita<br>når på vegom ute<br>det spyrjast kann etter spjot.",
 		"«Krig er en stygg ting, men ikke den styggeste av ting. Den nedbrutte og vanærende tilstanden av moralsk og patriotisk forfall som synes at ingen ting er verdt å krige for er mye verre. En person som har intet han er villig til å kjempe for, ingen ting som er viktigere for ham enn hans egen personlige sikkerhet, er en miserabel skapning, og har ingen sjanse til å være fri med mindre han holdes slik av anstrengelsene til bedre menn enn ham selv.»<br>– John Stuart Mill",
 		"«Når de sier: ‘Fred og ingen fare’, da kommer plutselig undergangen over dem, brått som riene over en kvinne som skal føde. Og de kan ikke slippe unna.»<br>– Paulus' første brev til tessalonikerne 5,3",
-		"«Slutten på alle ting er nær. Vær derfor sindige og edru, så dere kan be.»<br>– Peters første brev 4,7»"
+		"«Slutten på alle ting er nær. Vær derfor sindige og edru, så dere kan be.»<br>– Peters første brev 4,7»",
+		"«Og jeg så et dyr stige opp av havet. Det hadde ti horn og sju hoder og ti kroner på hornene, og på hodene sto det navn som var en spott mot Gud.»<br>– Johannes' åpenbaring 13,1",
+	],
+	"lf" => [
+		"«Det tvinger alle – små og store, rike og fattige, frie og slaver – til å ha et merke på sin høyre hånd eller på pannen. Og ingen kan kjøpe eller selge noe uten å ha dette merket: dyrets navn eller det tall som svarer til navnet.»<br>– Johannes' åpenbaring 13,16-17",
 	],
 ];
 $board_quotes['alle'] = [];
