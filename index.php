@@ -453,6 +453,8 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 	}
 	$p = 0;
 	$isfirst = true;
+	$images = 0;
+	$otherfiles = 0;
 	foreach ($rows as $rowid => $row) {
 		if ($isfirst) {
 			$firstpost = $rowid;
@@ -462,13 +464,38 @@ function print_thread($threadid, $board, $issticky, $locked, $isidx, $limit, $pr
 				$row, $rows, $threadid, $board, $isfirst,
 				$printboard, $isidx, $firstpost
 			);
+		} else {
+			if ($row['thumbnail'] !== null) {
+				++$images;
+			} elseif ($row['filemime'] !== null) {
+				++$otherfiles;
+			}
 		}
-		if ($isfirst && $isidx && $n > $limit) {
+		if ($isidx && $n > $limit && $p == ($n - $limit)) {
 			echo "<b>",
 				($n - $limit),
 				" post",
-				($n - $limit > 1 ? "er" : ""),
-				" utelatt.</b>";
+				($n - $limit > 1 ? "er" : "");
+			if ($images === 0 xor $otherfiles === 0) {
+				echo " og ";
+			} elseif ($images > 0 && $otherfiles > 0) {
+				echo ", ";
+			}
+			if ($images > 0) {
+				if ($images === 1) {
+					echo "ett bilde";
+				} else {
+					echo $images, " bilder";
+				}
+			}
+			if ($images > 0 && $otherfiles > 0) {
+				echo " og ";
+			}
+			if ($otherfiles > 0) {
+				echo $otherfiles, " fil",
+					($otherfiles > 1 ? "er" : "");
+			}
+			echo " utelatt.</b>";
 		}
 		++$p;
 		$isfirst = false;
@@ -582,9 +609,11 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 				}
 			}
 		}, $post);
+	$post = preg_replace("/&gt;&gt;&gt;\/(\w+)\/(?=\D|$)/", "<a href=\"/$1/\">&gt;&gt;&gt;/$1/</a>", $post);
 	$post = str_replace("\n", "<br>", $post);
 	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
-	$post = preg_replace("/^&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
+	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
+	$post = preg_replace("/^&gt;(.*)<br>/U", "<span class=q>&gt;$1</span><br>", $post);
 	$post = preg_replace("/<br>&gt;(.*)$/U", "<br><span class=q>&gt;$1</span>", $post);
 	return $post;
 }
