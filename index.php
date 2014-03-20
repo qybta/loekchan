@@ -27,7 +27,8 @@ define('PER_PAGE', 10);
 define('FROM_POST', 5);
 define('MAX_FILE_SIZE', 4*1024*1024);
 
-function error($msg="Du gjorde noe galt.") {
+function error($msg="Du gjorde noe galt.", $code=500) {
+	http_response_code($code);
 	?><!doctype html><meta charset=utf8><title>Løkchan - feilmelding</title><style>html{background-color:beige;color:black}</style><?php
 	echo "<h1>$msg</h1>";
 	exit;
@@ -182,11 +183,11 @@ $page = !empty($_GET['page']) ? ((int) $_GET['page']) : 0;
 // /([^/])/f/([0-9]+) -> index.php?board=$1&file=$2
 
 if ($board === "bl") { // Fatter ikke hvorfor folk prøver dette.
-	error("Yes, this is Dog. How may I direct your call?");
+	error("Yes, this is Dog. How may I direct your call?", 418);
 }
 
 if (!isset($boards[$board])) {
-	error();
+	error("Board not found.", 404);
 }
 
 if (isset($board_quotes[$board])) {
@@ -227,7 +228,7 @@ EOD
 	exit;
 }
 
-$c = pg_connect("dbname=loekchan user=loekchan")
+pg_connect("dbname=loekchan user=loekchan")
 	or error("MySQL Connection Error");
 
 if ($file !== 0) {
@@ -235,7 +236,7 @@ if ($file !== 0) {
 	list($type, $name, $att) = pg_fetch_row($res);
 	$att = pg_unescape_bytea($att);
 	if ($att === null) {
-		error("Ingen fil her.");
+		error("Ingen fil her.", 404);
 	}
 	if ($type === "text/plain") {
 		$type = $type."; charset=".mb_detect_encoding($att);
@@ -252,7 +253,7 @@ if ($reply) {
 	$res = pg_query("select * from threads natural join posts where postid = $threadid");
 	$thread = pg_fetch_assoc($res);
 	if (empty($thread)) {
-		error("fuk of u fgt");
+		error("fuk of u fgt", 451);
 	}
 
 	$res = pg_query("select postid, post from posts where postid = (select min(postid) from posts where threadid = {$thread['threadid']})");
@@ -297,7 +298,7 @@ if (isset($_POST['post'])) {
 		$thread = pg_fetch_assoc($res);
 	}
 	if ($thread['locked'] !== 'f') {
-		error("Tråden er låst.");
+		error("Tråden er låst.", 403);
 	}
 	if (isset($_FILES['file']) && $_FILES['file']['error'] !== UPLOAD_ERR_NO_FILE) {
 		switch ($_FILES['file']['error']) {
@@ -305,9 +306,9 @@ if (isset($_POST['post'])) {
 			break;
 		case UPLOAD_ERR_INI_SIZE:
 		case UPLOAD_ERR_FORM_SIZE:
-			error("Fila di var for stor.");
+			error("Fila di var for stor.", 413);
 		case UPLOAD_ERR_PARTIAL:
-			error("Ikke hele fila di ble opplastet.");
+			error("Ikke hele fila di ble opplastet.", 412);
 		default:
 			error();
 		}
@@ -381,7 +382,7 @@ if (isset($_POST['post'])) {
 		$res = pg_query("select count(*) from posts where filesha1 = $filesha1");
 		list($n) = pg_fetch_row($res);
 		if ($n > 0) {
-			error("Fila du forsøkte å laste opp finnes allerede på løkchan.");
+			error("Fila du forsøkte å laste opp finnes allerede på løkchan.", 409);
 		}
 
 		$res = pg_query("insert into posts (threadid, name, mail, trip, post, thumbnail, filemime, filename, " .
@@ -391,7 +392,7 @@ if (isset($_POST['post'])) {
 		list($postid) = pg_fetch_row($res);
 	} else {
 		if (empty(trim($_POST['post']))) {
-			error("Du må poste noe.");
+			error("Du må poste noe.", 402);
 		}
 		$threadid = ((int) $thread['threadid']);
 		$name = !empty($_POST['name']) ? pg_escape_literal(trim($_POST['name'])) : "null";
