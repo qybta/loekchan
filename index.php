@@ -588,9 +588,6 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 			$n = 1000;
 		}
 		$npost = mb_substr($post, 0, min($n, 1000));
-		if ($npost === false) { // I fucking hate PHP.
-			$npost = "";
-		}
 		if ($npost !== $post) {
 			$npost .= "…";
 			$post = htmlspecialchars($npost)."<br>";
@@ -601,6 +598,12 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 	} else {
 		$post = htmlspecialchars($post);
 	}
+	$post = preg_replace("/&gt;&gt;&gt;\/(\w+)\/(?=\D|$)/", "<a href=\"/$1/\">&gt;&gt;&gt;/$1/</a>", $post);
+	$post = str_replace("\n", "<br>", $post);
+	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
+	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
+	$post = preg_replace("/^&gt;(.*)<br>/U", "<span class=q>&gt;$1</span><br>", $post);
+	$post = preg_replace("/<br>&gt;(.*)$/U", "<br><span class=q>&gt;$1</span>", $post);
 	$post = preg_replace_callback("/&gt;&gt;(&gt;\/\w+\/)?(\d+)/", function ($matches) use ($posts, $board) {
 			if (isset($posts[$matches[2]])) {
 				return "<a href=\"#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
@@ -611,19 +614,20 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 					return $matches[0];
 				}
 				list($board_, $tid, $refdpost) = pg_fetch_row($res);
+				$refdpost_ = mb_substr($refdpost, 0, 100);
+				if ($refdpost !== $refdpost_) {
+					$refdpost_ .= "…";
+				}
+				if (strlen($refdpost) > 0) {
+					$refdpost = " title=\"".htmlspecialchars($refdpost_)."\"";
+				}
 				if ($board_ !== $board) {
-					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\" title=\"".htmlspecialchars(mb_substr($refdpost, 0, 100))."\">&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
+					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\"$refdpost>&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
 				} else {
-					return "<a href=\"/$board/src/$tid#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
+					return "<a href=\"/$board/src/$tid#p{$matches[2]}\"$refdpost>&gt;&gt;{$matches[2]}</a>";
 				}
 			}
 		}, $post);
-	$post = preg_replace("/&gt;&gt;&gt;\/(\w+)\/(?=\D|$)/", "<a href=\"/$1/\">&gt;&gt;&gt;/$1/</a>", $post);
-	$post = str_replace("\n", "<br>", $post);
-	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
-	$post = preg_replace("/<br>&gt;(.*)<br>/U", "<br><span class=q>&gt;$1</span><br>", $post);
-	$post = preg_replace("/^&gt;(.*)<br>/U", "<span class=q>&gt;$1</span><br>", $post);
-	$post = preg_replace("/<br>&gt;(.*)$/U", "<br><span class=q>&gt;$1</span>", $post);
 	return $post;
 }
 
