@@ -2,13 +2,20 @@
 require "secrets.php";
 
 if (!isset($_SERVER['HTTP_USER_AGENT'])) {
-	die("Who are you?");
+	http_response_code(412);
+	die("Who are you? (no user agent)");
 }
 
-if ($_SERVER['HTTP_USER_AGENT'] === "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36" || $_SERVER['HTTP_USER_AGENT'] === "Java/1.7.0_17") {
+$banned = [
 	// Ser ut til å overvåke oppetid på HS-er, kanskje for korrelering med
 	// relays.
-	header('Location: http://fuckthefuckoffok.onion', true, 301);
+	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36" => "just_stop",
+	// Jævla idiot indekserer dataurler.
+	"Python-urllib/1.17" => "Do_not_follow_dataurls_and_use_descriptive_UA.",
+];
+
+if (isset($banned[$_SERVER['HTTP_USER_AGENT']])) {
+	header('Location: http://fuckthefuckoffok.onion/' . $banned[$_SERVER['HTTP_USER_AGENT']], true, 301);
 	exit;
 }
 
@@ -25,7 +32,7 @@ error_reporting(E_ALL);
 
 define('PER_PAGE', 10);
 define('FROM_POST', 5);
-define('MAX_FILE_SIZE', 4*1024*1024);
+define('MAX_FILE_SIZE', 32*1024*1024);
 
 function error($msg="Du gjorde noe galt.", $code=500) {
 	http_response_code($code);
@@ -412,7 +419,7 @@ if (isset($_POST['post'])) {
 }
 
 ?>
-<!doctype html><meta charset=utf8><title><?= $title ?></title><style>html{background-color:beige;color:black}th{background-color:bisque}td,ul{text-align:left}.center{text-align:center;width:780px;margin:0 auto}.t{font-size:0.8em}table,textarea,input[type=text]{width:100%}.img{float:left;padding:5px}.name,.cur{color:green;font-weight:bold}.admin{color:red;font-weight:bold}.post{padding:4px;border:1px outset;background-color:bisque;display:table;margin:4px}.header{padding-bottom:2px}.q{color:rgb(120,153,34)}</style><?php
+<!doctype html><meta charset=utf8><title><?= $title ?></title><style>html{background-color:beige;color:black;font-family:sans-serif}h1,th{font-family:serif}th{background-color:bisque}td,ul{text-align:left}.center{text-align:center;width:780px;margin:0 auto}.t{font-size:0.8em}table,textarea,input[type=text]{width:100%}.img{float:left;margin:3px 20px 5px}.name,.cur{color:green;font-weight:bold}.admin{color:red;font-weight:bold}.post{padding:4px;border:1px outset;background-color:bisque;display:table;margin:4px}.header{padding-bottom:2px}.q{color:rgb(120,153,34)}.txt{line-height:1.4em;margin: 0}</style><?php
 
 ?><script>document.addEventListener('DOMContentLoaded',function(){Array.prototype.forEach.call(document.querySelectorAll("img"),function(e){e.addEventListener("click",function(){var tmp=this.getAttribute('src');this.setAttribute('src',this.getAttribute('data-uri'));this.setAttribute('data-uri',tmp);});});});</script><?php
 
@@ -566,8 +573,9 @@ function print_post($post, $posts, $threadid, $board, $isfirst, $printboard,
 			base64_encode(pg_unescape_bytea($thumbnail)),
 			"\"></div>";
 	}
+	echo "<p class=txt>";
 	echo process_post($postid, $post, ($isidx?[]:$posts), $board, $isidx, $firstpost);
-	echo "</div>";
+	echo "</p></div>";
 }
 function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 	$post = str_replace("\r", "", $post);
