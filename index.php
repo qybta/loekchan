@@ -605,14 +605,14 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 			if (isset($posts[$matches[2]])) {
 				return "<a href=\"#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
 			} else {
-				$res = pg_query("select board, min(postid) from threads natural join posts where threadid = (select threadid from threads natural join posts where postid=" .((int) $matches[2]).") group by board");
+				$res = pg_query("select t.board, min(p.postid), op.post from threads t natural join posts p, (select threadid, post from threads natural join posts where postid=" .((int) $matches[2]).") op where op.threadid = t.threadid group by board, op.post");
 				$n = pg_num_rows($res);
 				if ($n == 0) {
 					return $matches[0];
 				}
-				list($board_, $tid) = pg_fetch_row($res);
+				list($board_, $tid, $refdpost) = pg_fetch_row($res);
 				if ($board_ !== $board) {
-					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\">&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
+					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\" title=\"".htmlspecialchars(mb_substr($refdpost, 0, 100))."\">&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
 				} else {
 					return "<a href=\"/$board/src/$tid#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
 				}
