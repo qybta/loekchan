@@ -1,4 +1,9 @@
 <?php
+
+// Worse is Better.
+
+// But not really. This code is crap.
+
 require "secrets.php";
 
 if (!isset($_SERVER['HTTP_USER_AGENT'])) {
@@ -35,6 +40,7 @@ define('FROM_POST', 5);
 define('MAX_FILE_SIZE', 32*1024*1024);
 
 function error($msg="Du gjorde noe galt.", $code=500) {
+	syslog(LOG_INFO, "error - $code - $msg");
 	http_response_code($code);
 	?><!doctype html><meta charset=utf8><title>Løkchan - feilmelding</title><style>html{background-color:beige;color:black}</style><?php
 	echo "<h1>$msg</h1>";
@@ -45,12 +51,14 @@ function humansize($n) {
 	if ($n > 1024) {
 		$n /= 1024;
 		$suffix = "KiB";
+		$mod = "d";
 	}
 	if ($n > 1024) {
 		$n /= 1024;
 		$suffix = "MiB";
+		$mod = ".2f";
 	}
-	return sprintf("%d%s", $n, $suffix);
+	return sprintf("%$mod%s", $n, $suffix);
 }
 function cleanqval($v) {
 	$out = "";
@@ -182,10 +190,12 @@ $board = !empty($_GET['board']) ? $_GET['board'] : "alle";
 $threadid = !empty($_GET['thread']) ? ((int) $_GET['thread']) : 0;
 $file = !empty($_GET['file']) ? ((int) $_GET['file']) : 0;
 $page = !empty($_GET['page']) ? ((int) $_GET['page']) : 0;
+$verify = !empty($_GET['verify']) ? ((int) $_GET['verify']) : 0;
 
 // /favicon\.ico -> index.php?favicon
 // /([^/]+)/ -> index.php?board=$1
 // /([^/]+)/([0-9]+) -> index.php?board=$1&page=$2
+// /([^/]+)/ver/([0-9]+) -> index.php?board=$1&verify=$2
 // /([^/]+)/src/([0-9]+) -> index.php?board=$1&thread=$2
 // /([^/])/f/([0-9]+) -> index.php?board=$1&file=$2
 
@@ -255,9 +265,95 @@ if ($file !== 0) {
 	exit;
 }
 
+function purge_the_unclean() {
+	static $purgemap = null;
+	global $captchas;
+	if ($purgemap !== null) {
+		return $purgemap;
+	}
+	$res = pg_query("select question, count(*) from threads where verified='t' and question is not null group by question");
+	$solveds = [];
+	while (list($qidx, $n) = pg_fetch_row($res)) {
+		if ($n > 10) {
+			unset($captchas[$qidx]);
+		}
+	}
+	$purgemap = [];
+	foreach ($captchas as $k => $_) {
+		$purgemap[] = $k;
+	}
+	return $purgemap;
+}
+
+if ($verify !== 0) {
+	purge_the_unclean();
+	$res = pg_query('select board, question, verified from threads where threadid='.((int)$verify));
+	if (pg_num_rows($res) === 0) {
+		error("Tråd ikke funnet.", 404);
+	}
+	list($board, $qidx, $verified) = pg_fetch_row($res);
+	if ($verified === 't') {
+		$res = pg_query('select min(postid) from posts where threadid='.((int)$verify));
+		list($post) = pg_fetch_row($res);
+		header("Location: /$board/src/$post", 301);
+		exit;
+	}
+	if ($qidx === null || !isset($captchas[$qidx])) {
+		error("Her skulle du liksom skrive inn en captcha, men ".
+			"noe galt skjedde. Prøve igjen?");
+	}
+	$extra = "";
+	if (isset($_POST['ver'])) {
+		$ver = mb_strtolower(trim($_POST['ver']));
+		$ans = mb_strtolower(trim($captchas[$qidx][1]));
+		if (mb_substr($ver, -1) === '.') {
+			$ver = mb_substr($ver, 0, -1);
+		}
+		if (sha1($ver) === sha1($ans)) {
+			pg_query("update threads set verified='t' where threadid=".((int)$verify));
+			$res = pg_query('select min(postid) from posts where threadid='.((int)$verify));
+			list($post) = pg_fetch_row($res);
+			header("Location: /$board/src/$post", 301);
+			exit;
+		} else {
+			$extra = '<span style="color:red">Galt svar, prøv igjen.</span><br>';
+		}
+	}
+	?><!doctype html><meta charset=utf8><title>Løkchan - verifiser</title><style>html{background-color:beige;color:black}</style><?php
+	echo $extra,
+		"Siden noen syntes spamming var jævlig gøy må du svare på ",
+		"dette spørsmålet for å poste tråden din:<br>",
+		"<form method=post action=\"\">";
+
+	ob_start(); // over-engineering
+	$bbox = imagettfbbox(12, 0, "DejaVuSans", $captchas[$qidx][0]);
+	$fwidth = abs($bbox[0]) + abs($bbox[2]) + 10;
+	$height = abs($bbox[1]) + abs($bbox[5]) + 5;
+	$width = max(400, $fwidth);
+	$image = imagecreatetruecolor($width, $height);
+	imageantialias($image, true);
+	for ($i = 0; $i < $width; ++$i) {
+		for ($j = 0; $j < $height; ++$j) {
+			$c = imagecolorallocate($image, mt_rand(150, 255), mt_rand(150,255), mt_rand(150,255));
+			imagesetpixel($image, $i, $j, $c);
+		}
+	}
+	$fontcolor = imagecolorallocate($image, mt_rand(0,150),mt_rand(0,150),mt_rand(0,150));
+	imagettftext($image, 12, 0, 3 + mt_rand(0, $width - $fwidth), 15, $fontcolor, "DejaVuSans", $captchas[$qidx][0]);
+	imagejpeg($image, null, 40);
+	$img = ob_get_contents();
+	ob_end_clean();
+	echo "<img alt=captcha src=\"data:image/jpeg;base64,", base64_encode($img), "\">";
+	echo "<br>",
+		"<input name=ver type=text><br><input type=submit></form><br><br>",
+		"Alternativt vent og se om en av våre tusenvis av moderatorer ",
+		"forbarmer seg over deg.";
+	exit;
+}
+
 $reply = $threadid !== 0;
 if ($reply) {
-	$res = pg_query("select * from threads natural join posts where postid = $threadid");
+	$res = pg_query("select * from threads natural join posts where verified = 't' and postid = $threadid");
 	$thread = pg_fetch_assoc($res);
 	if (empty($thread)) {
 		error("fuk of u fgt", 451);
@@ -303,6 +399,10 @@ if (isset($_POST['post'])) {
 	if (!$reply) {
 		$res = pg_query("insert into threads (board) VALUES ('$board') returning *");
 		$thread = pg_fetch_assoc($res);
+		$purgemap = purge_the_unclean();
+		$qidx = $purgemap[$thread['threadid'] % sizeof($purgemap)];
+		pg_query('update threads set question = '.((int)$qidx).
+			' where threadid = '.((int)$thread['threadid']));
 	}
 	if ($thread['locked'] !== 'f') {
 		error("Tråden er låst.", 403);
@@ -374,7 +474,13 @@ if (isset($_POST['post'])) {
 		}
 		$threadid = ((int) $thread['threadid']);
 		$name = !empty($_POST['name']) ? pg_escape_literal(trim($_POST['name'])) : "null";
+		if (mb_strlen($name) > 300) {
+			error("Trenger du virkelig et så langt navn?");
+		}
 		$mail = !empty($_POST['mail']) ? pg_escape_literal(trim($_POST['mail'])) : "null";
+		if (mb_strlen($mail) > 100) {
+			error("Trenger du virkelig en så lang e-post?");
+		}
 		$trip = !empty($_POST['trip']) ? ("'" . pg_escape_bytea(sha1(CHAN_SALT . trim($_POST['trip']), true)) . "'") : "null";
 		$post = pg_escape_literal(str_replace("\r", "", $_POST['post']));
 		$thumbnail = $thumbnail !== null ? "'" . pg_escape_bytea($thumbnail) . "'" : "null";
@@ -403,7 +509,13 @@ if (isset($_POST['post'])) {
 		}
 		$threadid = ((int) $thread['threadid']);
 		$name = !empty($_POST['name']) ? pg_escape_literal(trim($_POST['name'])) : "null";
+		if (mb_strlen($name) > 300) {
+			error("Trenger du virkelig et så langt navn?");
+		}
 		$mail = !empty($_POST['mail']) ? pg_escape_literal(trim($_POST['mail'])) : "null";
+		if (mb_strlen($mail) > 100) {
+			error("Trenger du virkelig en så lang e-post?");
+		}
 		$trip = !empty($_POST['trip']) ? ("'" . pg_escape_bytea(sha1(CHAN_SALT . trim($_POST['trip']), true)) . "'") : "null";
 		$post = pg_escape_literal(str_replace("\r", "", $_POST['post']));
 		$res = pg_query("insert into posts (threadid, name, mail, trip, post) " .
@@ -414,7 +526,11 @@ if (isset($_POST['post'])) {
 		pg_query("update threads set modtime = now() where threadid = $threadid");
 	}
 	pg_query("COMMIT");
-	header("Location: /$board/src/$postid", true, 303);
+	if ($reply) {
+		header("Location: /$board/src/$postid", true, 303);
+	} else {
+		header("Location: /$board/ver/$threadid", true, 303);
+	}
 	exit;
 }
 
@@ -605,8 +721,19 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 	$post = preg_replace("/^&gt;(.*)<br>/U", "<span class=q>&gt;$1</span><br>", $post);
 	$post = preg_replace("/<br>&gt;(.*)$/U", "<br><span class=q>&gt;$1</span>", $post);
 	$post = preg_replace_callback("/&gt;&gt;(&gt;\/\w+\/)?(\d+)/", function ($matches) use ($posts, $board) {
+			$titlify = function ($refdpost) {
+				$refdpost_ = mb_substr($refdpost, 0, 50);
+				if ($refdpost !== $refdpost_) {
+					$refdpost_ .= "…";
+				}
+				if (strlen($refdpost) > 0) {
+					$refdpost = " title=\"".htmlspecialchars($refdpost_)."\"";
+				}
+				return $refdpost;
+			};
 			if (isset($posts[$matches[2]])) {
-				return "<a href=\"#p{$matches[2]}\">&gt;&gt;{$matches[2]}</a>";
+				$refdpost = $titlify($posts[$matches[2]]['post']);
+				return "<a href=\"#p{$matches[2]}\"$refdpost>&gt;&gt;{$matches[2]}</a>";
 			} else {
 				$res = pg_query("select t.board, min(p.postid), op.post from threads t natural join posts p, (select threadid, post from threads natural join posts where postid=" .((int) $matches[2]).") op where op.threadid = t.threadid group by board, op.post");
 				$n = pg_num_rows($res);
@@ -614,13 +741,7 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 					return $matches[0];
 				}
 				list($board_, $tid, $refdpost) = pg_fetch_row($res);
-				$refdpost_ = mb_substr($refdpost, 0, 100);
-				if ($refdpost !== $refdpost_) {
-					$refdpost_ .= "…";
-				}
-				if (strlen($refdpost) > 0) {
-					$refdpost = " title=\"".htmlspecialchars($refdpost_)."\"";
-				}
+				$refdpost = $titlify($refdpost);
 				if ($board_ !== $board) {
 					return "<a href=\"/$board_/src/$tid#p{$matches[2]}\"$refdpost>&gt;&gt;&gt;/$board_/{$matches[2]}</a>";
 				} else {
@@ -637,7 +758,8 @@ if ($threadid === 0) {
 	list($num_threads) = pg_fetch_row($res);
 
 	$res = pg_query("select threadid, board, issticky, locked from threads " .
-	                ($board !== "alle" ? "where board = '$board' " : "") .
+			"where verified = 't' and hidden='f' ".
+	                ($board !== "alle" ? "and board = '$board' " : "") .
 	                "order by " .
 	                        ($board !== "alle" ? "issticky desc, " : "") .
 	                        "modtime desc " .

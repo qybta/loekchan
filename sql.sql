@@ -3,7 +3,10 @@ CREATE TABLE threads (
 	board text not null,
 	issticky bool not null default 'f',
 	locked bool not null default 'f',
-	modtime timestamptz not null default now()
+	modtime timestamptz not null default now(),
+	question int,
+	verified bool not null default 'f',
+	hidden bool not null default 'f'
 );
 CREATE INDEX thread_order ON threads (board, modtime);
 
