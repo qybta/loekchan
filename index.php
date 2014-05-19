@@ -48,6 +48,7 @@ function error($msg="Du gjorde noe galt.", $code=500) {
 }
 function humansize($n) {
 	$suffix = "B";
+	$mod = "d";
 	if ($n > 1024) {
 		$n /= 1024;
 		$suffix = "KiB";
@@ -150,29 +151,39 @@ $board_quotes = [
 	],
 	"pol" => [
 		"Aldri du leggje<br>andre til last<br>det som mang ein mann hender.",
+		"For at tyranniet skal ta slutt må det spre seg til ingen slipper unna og alle vil kjempe mot det.<br>Verre er bedre.",
 	],
 	"rus" => [
 		"«Vær edru og våk! Deres motstander, djevelen, går omkring som en brølende løve for å finne noen å sluke.»<br>– Peters første brev 5,8",
+		"Отвали.",
 	],
 	"hjelp" => [
 		"«Men om du søker Gud og ber Den veldige om nåde, om du er ren og rettskaffen, så vil han våke over deg og gjenreise din rettferds bolig.»<br>– Job 8,5-6",
 		"Vitlaus mann<br>vaker all natti<br>tenkjer både opp og ut.<br>Han er trøytt og mod<br>når morgonen kjem,<br>og alt er flokut som fyrr.",
 		"«I stedet for å lure på når den neste ferien din er burde du kanskje ordne deg et liv du ikke trenger å slippe unna fra.»<br>– Seth Godin",
 		"Ikke ofre det du vil ha mest for det du vil ha nå.",
+		"Det er formål som driver og dytter deg, ikke formål som drar deg.",
 	],
 	"cy" => [
 		"«Svovel og salt, hele landet avsvidd så det ikke kan sås, bli grønt eller noe strå kan vokse der, slik det også var da Sodoma og Gomorra, Adma og Sebojim ble ødelagt, de som Herren i sin vrede og harme ødela.»<br>– Femte Mosebok 29,23",
 		"Våpni sine<br>skal mann på vollen<br>ikkje gange eit fet ifrå.<br>Uvisst er å vita<br>når på vegom ute<br>det spyrjast kann etter spjot.",
 	],
+	"prog" => [
+		"Zerstörung durch Fortschritte der Kryptologie",
+		"«Don't get mad, get even. Write code.»",
+		"«Ingen mengde vold kan løse et matteproblem.»<br>– Jacob Appelbaum",
+	],
 	"sik" => [
 		"«Behandle laptoppen din som du behandler tenåringsrømlingen i sex-kjelleren din: lås den ned når du går fra den.»<br>– the grugq",
+		"Zerstörung durch Fortschritte der Kryptologie",
 	],
 	"mot" => [
 		"Våpni sine<br>skal mann på vollen<br>ikkje gange eit fet ifrå.<br>Uvisst er å vita<br>når på vegom ute<br>det spyrjast kann etter spjot.",
 		"«Krig er en stygg ting, men ikke den styggeste av ting. Den nedbrutte og vanærende tilstanden av moralsk og patriotisk forfall som synes at ingen ting er verdt å krige for er mye verre. En person som har intet han er villig til å kjempe for, ingen ting som er viktigere for ham enn hans egen personlige sikkerhet, er en miserabel skapning, og har ingen sjanse til å være fri med mindre han holdes slik av anstrengelsene til bedre menn enn ham selv.»<br>– John Stuart Mill",
 		"«Når de sier: ‘Fred og ingen fare’, da kommer plutselig undergangen over dem, brått som riene over en kvinne som skal føde. Og de kan ikke slippe unna.»<br>– Paulus' første brev til tessalonikerne 5,3",
-		"«Slutten på alle ting er nær. Vær derfor sindige og edru, så dere kan be.»<br>– Peters første brev 4,7»",
+		"«Slutten på alle ting er nær. Vær derfor sindige og edru, så dere kan be.»<br>– Peters første brev 4,7",
 		"«Og jeg så et dyr stige opp av havet. Det hadde ti horn og sju hoder og ti kroner på hornene, og på hodene sto det navn som var en spott mot Gud.»<br>– Johannes' åpenbaring 13,1",
+		"«Formaningen ‘Cypherpønker skriver kode’ bør tas metaforisk. Jeg er av den oppfatting at å ‘skrive kode’ betyr å ta effektive unilaterale tiltak som et individ. Det kan bety å skrive faktisk kode, men kan også bety å grave gjennom papirsøpla til Mycrotronx og publisere funnene anonymt. Det kan også bety å lage en offshore digital bank. La oss ikke bli for bokstavelige her. Det som er viktig er at Cypherpønker tar personlig ansvar for å styrke sin stilling mot truslene mot privatliv.»<br>– Sandy Sandford, 1994-07-08"
 	],
 	"lf" => [
 		"«Det tvinger alle – små og store, rike og fattige, frie og slaver – til å ha et merke på sin høyre hånd eller på pannen. Og ingen kan kjøpe eller selge noe uten å ha dette merket: dyrets navn eller det tall som svarer til navnet.»<br>– Johannes' åpenbaring 13,16-17",
@@ -272,7 +283,6 @@ function purge_the_unclean() {
 		return $purgemap;
 	}
 	$res = pg_query("select question, count(*) from threads where verified='t' and question is not null group by question");
-	$solveds = [];
 	while (list($qidx, $n) = pg_fetch_row($res)) {
 		if ($n > 10) {
 			unset($captchas[$qidx]);
@@ -555,7 +565,7 @@ echo "]</p>";
 if ($board !== "alle" && !$locked) {
 	?><form enctype=multipart/form-data action="" method=post><table><tr><th colspan=6>Modus: <?= $reply ? "svar" : "ny tråd"; ?></th></tr><tr><th>Navn</th><td><input type=text name=name placeholder=Anonym></td><th>Mail</th><td><input type=text name=mail placeholder=age></td><th>Trip</th><td><input name=trip type=text placeholder="er for fags"></td></tr><tr><th>Post</th><td colspan=5><textarea name=post cols=80 rows=10></textarea></td></tr><tr><th>Fil</th><td colspan=5><input type=hidden name=MAX_FILE_SIZE value=<?= MAX_FILE_SIZE ?>><input type=file name=file></td></tr><tr><th colspan=6><input type=submit value="<?= $reply ? "Post et svar" : "Lag en ny tråd"; ?>"></th></tr></table></form><?php
 
-	?><ul class=t><li>Ikke spam.<li>Ingen porno av prepubertale barn eller tortur av katter, please. Admin har sarte følelser.<li>Bryt gjerne alle andre lover.</ul><?php
+	?><ul class=t><li>Ikke spam.<li>Ingen porno av prepubertale barn eller tortur av katter, please. Admin har sarte følelser.<li>Bryt gjerne alle andre lover. Du er en stemme i mørket her. Ingen ser deg, hverken Admin eller Kripos. Bare det du sier.</ul><?php
 }
 echo "</div><hr>";
 
@@ -753,8 +763,8 @@ function process_post($postid, $post, $posts, $board, $isidx, $firstpost) {
 }
 
 if ($threadid === 0) {
-	$res = pg_query("select count(*) from threads " .
-	                ($board !== "alle" ? "where board = '$board' " : ""));
+	$res = pg_query("select count(*) from threads where verified='t' and hidden='f'" .
+	                ($board !== "alle" ? " and board = '$board' " : ""));
 	list($num_threads) = pg_fetch_row($res);
 
 	$res = pg_query("select threadid, board, issticky, locked from threads " .
